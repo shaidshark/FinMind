@@ -123,3 +123,33 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   action VARCHAR(100) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+-- Bank Sync Connector Tables
+CREATE TABLE IF NOT EXISTS bank_accounts (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    connector_type VARCHAR(50) NOT NULL,
+    external_id VARCHAR(255) NOT NULL,
+    account_name VARCHAR(255),
+    status VARCHAR(20) NOT NULL DEFAULT 'active',
+    last_synced_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS ix_bank_accounts_user_id ON bank_accounts(user_id);
+
+CREATE TABLE IF NOT EXISTS bank_transactions (
+    id SERIAL PRIMARY KEY,
+    bank_account_id INTEGER NOT NULL REFERENCES bank_accounts(id) ON DELETE CASCADE,
+    external_tx_id VARCHAR(255) NOT NULL,
+    amount NUMERIC(12, 2) NOT NULL,
+    currency VARCHAR(10) NOT NULL DEFAULT 'INR',
+    description VARCHAR(500),
+    tx_date DATE NOT NULL,
+    tx_type VARCHAR(20) NOT NULL DEFAULT 'DEBIT',
+    imported BOOLEAN NOT NULL DEFAULT FALSE,
+    imported_expense_id INTEGER REFERENCES expenses(id),
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS ix_bank_transactions_account_id ON bank_transactions(bank_account_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_bank_tx_external ON bank_transactions(bank_account_id, external_tx_id);
